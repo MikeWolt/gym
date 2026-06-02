@@ -25,6 +25,10 @@
   .hdr-btns{display:flex;align-items:center;gap:4px;}
   .title .reset{font-size:12px;color:var(--mut);background:none;border:none;padding:4px 6px;}
   .gear{font-size:18px;background:none;border:none;color:var(--mut);padding:2px 4px;line-height:1;}
+  .wakepill{font-size:15px;background:var(--card2);border:1px solid var(--line);border-radius:9px;
+    padding:4px 8px;line-height:1;}
+  .wakepill.on{border-color:var(--acc);background:rgba(74,222,128,.14);}
+  .wakepill.warn{border-color:var(--warn);background:rgba(251,191,36,.14);}
   .days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
   .days::-webkit-scrollbar{display:none;}
   .day{flex:0 0 auto;min-width:42px;text-align:center;padding:7px 0;border-radius:12px;
@@ -150,6 +154,7 @@
   <div class="title">
     <h1>🏋️ Weekly Training Plan</h1>
     <div class="hdr-btns">
+      <button class="wakepill" id="wakePill" onclick="tapWakePill()" title="Keep screen on">💤</button>
       <button class="reset" onclick="resetDay()">reset day</button>
       <button class="gear" onclick="openSettings()" aria-label="Settings">⚙</button>
     </div>
@@ -295,7 +300,7 @@ const DAY_LABELS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 /* ---------- STATE / PERSISTENCE ---------- */
 const wkKey=()=>{const d=new Date();const o=new Date(d);o.setDate(d.getDate()-d.getDay());return o.toISOString().slice(0,10);};
-const VERSION="1.4";
+const VERSION="1.5";
 let store=JSON.parse(localStorage.getItem("gymPlan")||"{}");
 // weights & settings persist across weeks; only the per-week "done" checkmarks reset.
 if(store.week!==wkKey()){store={week:wkKey(),done:{},weights:(store.weights||{}),bars:(store.bars||{}),settings:(store.settings||{})};save();}
@@ -708,35 +713,53 @@ function ensureNoSleepVideo(){
   v.appendChild(sw);v.appendChild(sm);
   document.body.appendChild(v);noSleepVid=v;return v;
 }
-let wakeWanted=false,wakeStatus="off";
-async function acquireWake(){
-  wakeWanted=true;let got=false;
+let wakeStatus="off";
+function wakeWanted(){return !!S.wake;}
+async function requestWake(){
+  if(!wakeWanted())return;
+  // video fallback (mainly helps iOS Safari; harmless elsewhere)
+  try{const v=ensureNoSleepVideo();if(v.paused){const p=v.play();if(p&&p.catch)p.catch(()=>{});}}catch(e){}
+  if(wl){wakeStatus="on";updateWakeUI();return;} // already held
   if('wakeLock'in navigator){
+    if(document.visibilityState!=="visible")return;
     try{
-      wl=await navigator.wakeLock.request('screen');got=true;wakeStatus="on";
-      wl.addEventListener("release",()=>{if(wakeWanted&&document.visibilityState==="visible")acquireWake();});
+      wl=await navigator.wakeLock.request('screen');
+      wakeStatus="on";
+      wl.addEventListener("release",()=>{wl=null;if(wakeWanted()&&document.visibilityState==="visible")requestWake();});
     }catch(e){wakeStatus="blocked";}
+  }else{
+    wakeStatus=(noSleepVid&&!noSleepVid.paused)?"video":"blocked";
   }
-  // video fallback (covers iOS Safari + webviews where Wake Lock is missing)
-  try{const v=ensureNoSleepVideo();const p=v.play();if(p&&p.then)p.then(()=>{if(!got)wakeStatus="on";}).catch(()=>{if(!got)wakeStatus="blocked";});else if(!got)wakeStatus="on";}catch(e){}
-  if(!('wakeLock'in navigator)&&wakeStatus==="off")wakeStatus="video";
   updateWakeUI();
 }
 function releaseWake(){
-  wakeWanted=false;wakeStatus="off";
   try{if(wl){wl.release();wl=null;}}catch(e){}
   try{if(noSleepVid)noSleepVid.pause();}catch(e){}
-  updateWakeUI();
+  wakeStatus="off";updateWakeUI();
 }
-// timers call keepAwake(); honours the user's "keep screen on" setting
-function keepAwake(on){ if(on&&S.wake){acquireWake();} else {releaseWake();} }
+function armWake(){ if(wakeWanted())requestWake(); else releaseWake(); }
+// screen stays awake the whole time the app is open — not tied to timers
+function keepAwake(){ armWake(); }
 function updateWakeUI(){
-  const el=document.getElementById("wakeStatus");
-  if(el)el.textContent=wakeStatus==="on"?"🔆 Screen lock active"
-    :wakeStatus==="blocked"?"⚠️ Screen lock blocked — open this file in Chrome (not a file-preview app)"
-    :wakeStatus==="video"?"🔆 Screen lock active (video mode)":"Screen lock off";
+  const map={on:"🔆 Screen stays on while this is open",
+    video:"🔆 Screen stays on (video mode)",
+    blocked:"⚠️ Couldn't lock the screen. Open this file in Chrome (or Add to Home screen), then tap the screen once.",
+    off:"Screen can sleep (keep-on is off)"};
+  const el=document.getElementById("wakeStatus");if(el)el.textContent=map[wakeStatus]||"";
+  const pill=document.getElementById("wakePill");
+  if(pill){
+    const ok=(wakeStatus==="on"||wakeStatus==="video");
+    pill.textContent=ok?"🔆":wakeStatus==="blocked"?"⚠️":"💤";
+    pill.classList.toggle("on",ok);
+    pill.classList.toggle("warn",wakeStatus==="blocked");
+  }
 }
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&wakeWanted)acquireWake();});
+function tapWakePill(){ if(!S.wake){toggleWake();} else if(wakeStatus==="blocked"){openSettings();} else {toggleWake();} }
+// re-acquire on every opportunity (visibility, focus, and the first user gesture Android needs)
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")armWake();});
+window.addEventListener("focus",armWake);
+window.addEventListener("pageshow",armWake);
+["pointerdown","touchend","click","keydown"].forEach(ev=>window.addEventListener(ev,()=>{if(!wl)armWake();},{passive:true}));
 
 /* ---------- settings ---------- */
 function openSettings(){syncSettingsUI();document.getElementById("settings").classList.add("show");}
@@ -755,12 +778,13 @@ function toggleVibrate(){S.vibrate=!S.vibrate;save();
   if(S.vibrate)vibe(60);}
 function toggleWake(){
   S.wake=!S.wake;save();
-  document.getElementById("swWake").classList.toggle("on",S.wake);
-  if(S.wake)acquireWake();else releaseWake();
+  const sw=document.getElementById("swWake");if(sw)sw.classList.toggle("on",S.wake);
+  armWake();
 }
 
 render();
 document.getElementById("verNum").textContent=VERSION;
+armWake();
 </script>
 </body>
 </html>
