@@ -22,7 +22,9 @@
     backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:10px 12px 6px;}
   .title{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
   .title h1{font-size:17px;margin:0;font-weight:700;letter-spacing:-.2px;}
+  .hdr-btns{display:flex;align-items:center;gap:4px;}
   .title .reset{font-size:12px;color:var(--mut);background:none;border:none;padding:4px 6px;}
+  .gear{font-size:18px;background:none;border:none;color:var(--mut);padding:2px 4px;line-height:1;}
   .days{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;}
   .days::-webkit-scrollbar{display:none;}
   .day{flex:0 0 auto;min-width:42px;text-align:center;padding:7px 0;border-radius:12px;
@@ -122,17 +124,66 @@
   .t-btn.done{background:var(--purple);color:#1a1230;border-color:var(--purple);min-width:150px;}
   .t-btn.close{background:none;border:none;color:var(--mut);position:absolute;top:18px;right:18px;font-size:26px;padding:6px 12px;min-width:0;}
   .hint{font-size:11.5px;color:var(--mut);text-align:center;margin-top:18px;max-width:300px;line-height:1.5;}
+
+  /* settings */
+  .settings-card{width:100%;max-width:380px;}
+  .set-h{font-size:22px;margin:0 0 18px;letter-spacing:-.3px;}
+  .set-row{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:12px;}
+  .set-row.toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+  .set-lbl{font-size:15px;font-weight:600;}
+  .set-val{color:var(--acc);font-weight:800;margin-left:6px;}
+  #volRange{width:100%;margin:14px 0 12px;accent-color:var(--acc);height:26px;}
+  .t-btn.mini{min-width:0;padding:9px 16px;font-size:13px;}
+  .switch{width:50px;height:30px;border-radius:16px;background:var(--card2);border:1px solid var(--line);
+    position:relative;flex:0 0 auto;transition:background .15s;}
+  .switch span{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;
+    background:var(--mut);transition:.15s;}
+  .switch.on{background:var(--acc);border-color:var(--acc);}
+  .switch.on span{left:25px;background:#06240f;}
+  .set-note{font-size:12px;color:var(--mut);text-align:center;line-height:1.5;margin:2px 4px 16px;min-height:16px;}
+  .set-ver{font-size:11.5px;color:var(--mut);text-align:center;opacity:.8;}
 </style>
 </head>
 <body>
 <header>
   <div class="title">
     <h1>🏋️ Weekly Training Plan</h1>
-    <button class="reset" onclick="resetDay()">reset day</button>
+    <div class="hdr-btns">
+      <button class="reset" onclick="resetDay()">reset day</button>
+      <button class="gear" onclick="openSettings()" aria-label="Settings">⚙</button>
+    </div>
   </div>
   <div class="days" id="days"></div>
 </header>
 <main id="main"></main>
+
+<!-- Settings overlay -->
+<div class="overlay" id="settings">
+  <button class="t-btn close" onclick="closeSettings()">×</button>
+  <div class="settings-card">
+    <h2 class="set-h">Settings</h2>
+
+    <div class="set-row">
+      <div class="set-lbl">Beep volume <span id="volPct" class="set-val"></span></div>
+      <input type="range" id="volRange" min="0" max="100" step="5" oninput="setVol(this.value)">
+      <button class="t-btn mini" onclick="beep('go')">Test sound</button>
+    </div>
+
+    <div class="set-row toggle" onclick="toggleVibrate()">
+      <div class="set-lbl">Vibrate on cues</div>
+      <div class="switch" id="swVibrate"><span></span></div>
+    </div>
+
+    <div class="set-row toggle" onclick="toggleWake()">
+      <div class="set-lbl">Keep screen on during timers</div>
+      <div class="switch" id="swWake"><span></span></div>
+    </div>
+    <div class="set-note" id="wakeStatus">Screen lock off</div>
+
+    <div class="set-ver">Version <span id="verNum"></span> · changes saved on this device</div>
+  </div>
+</div>
 
 <!-- Timer / circuit overlay -->
 <div class="overlay" id="overlay">
@@ -152,7 +203,7 @@
     </div>
   </div>
   <div class="t-controls" id="tControls"></div>
-  <div class="hint">Keep your screen awake. Audio beeps mark each transition — turn your ringer on.</div>
+  <div class="hint" id="tHint">Beeps + vibration mark each transition. Turn media volume up.</div>
 </div>
 
 <script>
@@ -244,12 +295,18 @@ const DAY_LABELS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 /* ---------- STATE / PERSISTENCE ---------- */
 const wkKey=()=>{const d=new Date();const o=new Date(d);o.setDate(d.getDate()-d.getDay());return o.toISOString().slice(0,10);};
+const VERSION="1.4";
 let store=JSON.parse(localStorage.getItem("gymPlan")||"{}");
-// weights persist across weeks; only the per-week "done" checkmarks reset.
-if(store.week!==wkKey()){store={week:wkKey(),done:{},weights:(store.weights||{}),bars:(store.bars||{})};save();}
+// weights & settings persist across weeks; only the per-week "done" checkmarks reset.
+if(store.week!==wkKey()){store={week:wkKey(),done:{},weights:(store.weights||{}),bars:(store.bars||{}),settings:(store.settings||{})};save();}
 if(!store.weights)store.weights={};
 if(!store.bars)store.bars={};
 if(!store.done)store.done={};
+if(!store.settings)store.settings={};
+const S=store.settings;
+if(S.vol===undefined)S.vol=0.9;        // 0..1 master beep volume
+if(S.vibrate===undefined)S.vibrate=true;
+if(S.wake===undefined)S.wake=true;     // keep screen on during timers
 function save(){localStorage.setItem("gymPlan",JSON.stringify(store));}
 let cur=new Date().getDay();
 
@@ -616,16 +673,18 @@ function audioCtx(){
   return actx;
 }
 function tone(freq,startOffset,dur,vol){
+  const v=Math.max(0.0002,vol*(S.vol!==undefined?S.vol:0.9));
+  if(v<=0.0003)return; // muted
   const c=audioCtx();const o=c.createOscillator();const g=c.createGain();
   o.type="square";o.frequency.value=freq;o.connect(g);g.connect(c.destination);
   const t=c.currentTime+startOffset;
   g.gain.setValueAtTime(0.0001,t);
-  g.gain.exponentialRampToValueAtTime(vol,t+0.008);
-  g.gain.setValueAtTime(vol,t+Math.max(0.02,dur-0.03));
+  g.gain.exponentialRampToValueAtTime(v,t+0.008);
+  g.gain.setValueAtTime(v,t+Math.max(0.02,dur-0.03));
   g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
   o.start(t);o.stop(t+dur+0.03);
 }
-function vibe(p){try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}}
+function vibe(p){try{if(S.vibrate&&navigator.vibrate)navigator.vibrate(p);}catch(e){}}
 function beep(kind){
   try{
     if(kind==="tick"){tone(960,0,0.14,0.95);vibe(50);}
@@ -649,18 +708,59 @@ function ensureNoSleepVideo(){
   v.appendChild(sw);v.appendChild(sm);
   document.body.appendChild(v);noSleepVid=v;return v;
 }
-async function keepAwake(on){
-  if(on){
-    try{if('wakeLock'in navigator){wl=await navigator.wakeLock.request('screen');}}catch(e){}
-    try{const v=ensureNoSleepVideo();const p=v.play();if(p&&p.catch)p.catch(()=>{});}catch(e){}
-  }else{
-    try{if(wl){wl.release();wl=null;}}catch(e){}
-    try{if(noSleepVid)noSleepVid.pause();}catch(e){}
+let wakeWanted=false,wakeStatus="off";
+async function acquireWake(){
+  wakeWanted=true;let got=false;
+  if('wakeLock'in navigator){
+    try{
+      wl=await navigator.wakeLock.request('screen');got=true;wakeStatus="on";
+      wl.addEventListener("release",()=>{if(wakeWanted&&document.visibilityState==="visible")acquireWake();});
+    }catch(e){wakeStatus="blocked";}
   }
+  // video fallback (covers iOS Safari + webviews where Wake Lock is missing)
+  try{const v=ensureNoSleepVideo();const p=v.play();if(p&&p.then)p.then(()=>{if(!got)wakeStatus="on";}).catch(()=>{if(!got)wakeStatus="blocked";});else if(!got)wakeStatus="on";}catch(e){}
+  if(!('wakeLock'in navigator)&&wakeStatus==="off")wakeStatus="video";
+  updateWakeUI();
 }
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&document.getElementById("overlay").classList.contains("show"))keepAwake(true);});
+function releaseWake(){
+  wakeWanted=false;wakeStatus="off";
+  try{if(wl){wl.release();wl=null;}}catch(e){}
+  try{if(noSleepVid)noSleepVid.pause();}catch(e){}
+  updateWakeUI();
+}
+// timers call keepAwake(); honours the user's "keep screen on" setting
+function keepAwake(on){ if(on&&S.wake){acquireWake();} else {releaseWake();} }
+function updateWakeUI(){
+  const el=document.getElementById("wakeStatus");
+  if(el)el.textContent=wakeStatus==="on"?"🔆 Screen lock active"
+    :wakeStatus==="blocked"?"⚠️ Screen lock blocked — open this file in Chrome (not a file-preview app)"
+    :wakeStatus==="video"?"🔆 Screen lock active (video mode)":"Screen lock off";
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&wakeWanted)acquireWake();});
+
+/* ---------- settings ---------- */
+function openSettings(){syncSettingsUI();document.getElementById("settings").classList.add("show");}
+function closeSettings(){document.getElementById("settings").classList.remove("show");}
+function syncSettingsUI(){
+  document.getElementById("volRange").value=Math.round((S.vol||0)*100);
+  document.getElementById("volPct").textContent=Math.round((S.vol||0)*100)+"%";
+  document.getElementById("swVibrate").classList.toggle("on",!!S.vibrate);
+  document.getElementById("swWake").classList.toggle("on",!!S.wake);
+  updateWakeUI();
+}
+function setVol(v){S.vol=Math.max(0,Math.min(1,(+v)/100));save();
+  document.getElementById("volPct").textContent=Math.round(S.vol*100)+"%";}
+function toggleVibrate(){S.vibrate=!S.vibrate;save();
+  document.getElementById("swVibrate").classList.toggle("on",S.vibrate);
+  if(S.vibrate)vibe(60);}
+function toggleWake(){
+  S.wake=!S.wake;save();
+  document.getElementById("swWake").classList.toggle("on",S.wake);
+  if(S.wake)acquireWake();else releaseWake();
+}
 
 render();
+document.getElementById("verNum").textContent=VERSION;
 </script>
 </body>
 </html>
