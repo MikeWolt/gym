@@ -108,20 +108,26 @@
 
   /* timer overlay */
   .overlay{position:fixed;inset:0;z-index:50;background:rgba(8,10,13,.96);
-    display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;}
+    display:none;flex-direction:column;align-items:center;justify-content:flex-start;
+    padding:max(26px,5vh) 24px 32px;}
   .overlay.show{display:flex;}
-  .t-ex{font-size:15px;color:var(--mut);text-align:center;margin-bottom:6px;max-width:90%;}
-  .t-phase{font-size:15px;font-weight:800;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;}
+  .t-ex{font-size:15px;color:var(--mut);text-align:center;margin-bottom:10px;max-width:90%;}
+  .t-phase{font-size:16px;font-weight:800;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;}
   .t-phase.work{color:var(--acc);} .t-phase.rest{color:var(--acc2);} .t-phase.get{color:var(--warn);}
   .t-phase.reps{color:var(--purple);}
-  .t-time{font-size:88px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;margin:6px 0;}
-  .t-time.small{font-size:56px;}
+  .t-time{font-size:92px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;margin:6px 0;}
+  .t-time.small{font-size:54px;}
   .t-sub{font-size:14px;color:var(--mut);margin-top:-2px;margin-bottom:2px;min-height:18px;}
-  .t-round{font-size:16px;color:var(--mut);margin-bottom:26px;}
-  .t-ring{position:relative;width:230px;height:230px;margin-bottom:18px;}
+  .t-round{font-size:17px;color:var(--txt);font-weight:700;margin-bottom:12px;}
+  .t-ring{position:relative;width:230px;height:230px;margin-bottom:14px;}
   .t-ring svg{transform:rotate(-90deg);}
   .t-ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
-  .t-controls{display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;justify-content:center;}
+  /* round pips */
+  .t-pips{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;max-width:88%;margin-bottom:6px;}
+  .pip{width:14px;height:14px;border-radius:50%;background:var(--card2);border:1.5px solid var(--line);transition:.15s;}
+  .pip.done{background:var(--acc);border-color:var(--acc);}
+  .pip.cur{background:transparent;border:2px solid var(--warn);box-shadow:0 0 0 3px rgba(251,191,36,.18);transform:scale(1.15);}
+  .t-controls{display:flex;gap:12px;margin-top:auto;flex-wrap:wrap;justify-content:center;}
   .t-btn{background:var(--card2);border:1px solid var(--line);color:var(--txt);border-radius:13px;
     padding:14px 22px;font-size:15px;font-weight:700;min-width:96px;}
   .t-btn.primary{background:var(--acc);color:#06240f;border-color:var(--acc);}
@@ -204,9 +210,10 @@
       <div class="t-phase" id="tPhase">READY</div>
       <div class="t-time" id="tTime">0</div>
       <div class="t-sub" id="tSub"></div>
-      <div class="t-round" id="tRound"></div>
     </div>
   </div>
+  <div class="t-round" id="tRound"></div>
+  <div class="t-pips" id="tPips"></div>
   <div class="t-controls" id="tControls"></div>
   <div class="hint" id="tHint">Beeps + vibration mark each transition. Turn media volume up.</div>
 </div>
@@ -292,7 +299,7 @@ const PLAN = {
       {n:"Trap Bar Deadlift",s:"165 lb · 15s work / 60s rest × 6",sets:6,wt:"165",bar:45,barOpts:[45,55,60,35],cue:"3–5 quality reps/window. Brace, push the floor away, neutral spine."},
       {n:"Bulgarian Split Squat",s:"25 lb DBs · 20s work / 30s rest × 6",sets:6,wt:"25",cue:"Control the eccentric; front knee tracks over foot."},
       {n:"Step-Ups",s:"20 lb DBs · 20s work / 20s rest × 6",sets:6,wt:"20",cue:"Full foot on box, drive through heel."},
-      {n:"Hip Thrust",s:"115 lb · 10 reps × 4",sets:4,wt:"115",bar:45,barOpts:[45,35,25,15],cue:"Chin tucked, squeeze glutes at top."},
+      {n:"DB Hip Thrust",s:"50 lb · 10 reps × 4",sets:4,wt:"50",cue:"One DB across the hip crease (rest it on a towel/pad — no bar digging in). Shoulder blades on the bench, drive through heels, squeeze glutes at the top, chin tucked, ribs down. Try single-leg with a lighter DB if you want more glute focus."},
       {n:"Hamstring Curl",s:"70 lb · 20s work / 20s rest × 6",sets:6,wt:"70",cue:""},
       {n:"Finish: Rower (damper 5)",circuit:true,tag:"Intervals",rounds:8,restDrill:0,restRound:90,cue:"250m hard, tap Done, then a 90s recovery counts down. Aim for 6–8 rounds.",
         drills:[{n:"Row 250m hard",type:"reps",tgt:"250 m"}]}
@@ -304,7 +311,7 @@ const DAY_LABELS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 /* ---------- STATE / PERSISTENCE ---------- */
 const wkKey=()=>{const d=new Date();const o=new Date(d);o.setDate(d.getDate()-d.getDay());return o.toISOString().slice(0,10);};
-const VERSION="1.7";
+const VERSION="1.8";
 let store=JSON.parse(localStorage.getItem("gymPlan")||"{}");
 // weights & settings persist across weeks; only the per-week "done" checkmarks reset.
 if(store.week!==wkKey()){store={week:wkKey(),done:{},weights:(store.weights||{}),bars:(store.bars||{}),settings:(store.settings||{})};save();}
@@ -607,30 +614,57 @@ function markRoundDone(r){
   if(!arr.includes(r))arr.push(r);
   store.done[id]=arr;save();
 }
+// 5s "get ready" lead-in before the first work interval
+const PREP_SECS=5;
+function startPrep(){
+  C.phase="prep";C.left=PREP_SECS;C.running=true;beep("prep");
+  clearInterval(C.iv);C.iv=setInterval(prepTick,1000);paintCircuit();
+}
+function prepTick(){
+  C.left--;
+  if(C.left<=3&&C.left>0)beep("tick");
+  if(C.left<=0){clearInterval(C.iv);C.running=false;startDrill();return;}
+  paintCircuit();
+}
 // button handlers
-function circStart(){C.round=1;C.idx=0;startDrill();}
+function circStart(){C.round=1;C.idx=0;startPrep();}
 function circDone(){if(C.phase==="reps")advanceDrill();}
 function circPause(){
-  if(C.phase!=="work"&&C.phase!=="restDrill"&&C.phase!=="restRound")return;
+  if(C.phase!=="work"&&C.phase!=="restDrill"&&C.phase!=="restRound"&&C.phase!=="prep")return;
   if(C.running){clearInterval(C.iv);C.running=false;}
-  else{C.running=true;C.iv=setInterval(C.phase==="work"?circTick:restTick,1000);}
+  else{C.running=true;C.iv=setInterval(C.phase==="work"?circTick:C.phase==="prep"?prepTick:restTick,1000);}
   paintCircuit();
 }
 function circSkip(){
-  if(C.phase==="reps"||C.phase==="work"){advanceDrill();}
+  if(C.phase==="prep"){clearInterval(C.iv);C.running=false;startDrill();}
+  else if(C.phase==="reps"||C.phase==="work"){advanceDrill();}
   else if(C.phase==="restDrill"||C.phase==="restRound"){clearInterval(C.iv);C.running=false;startDrill();}
 }
 function circuitControls(){
   if(C.phase==="ready")
-    return '<button class="t-btn primary" onclick="circStart()">Start Circuit</button>';
+    return '<button class="t-btn primary" onclick="circStart()">Start</button>';
   if(C.phase==="finished")
     return '<button class="t-btn primary" onclick="closeOverlay()">Done</button>';
   if(C.phase==="reps")
     return '<button class="t-btn done" onclick="circDone()">✓ Done — next</button>'+
            '<button class="t-btn" onclick="circSkip()">Skip</button>';
+  if(C.phase==="prep")
+    return '<button class="t-btn primary" onclick="circPause()">'+(C.running?"Pause":"Resume")+'</button>'+
+           '<button class="t-btn" onclick="circSkip()">Skip ▶</button>';
   // work or rest
   return '<button class="t-btn primary" onclick="circPause()">'+(C.running?"Pause":"Resume")+'</button>'+
          '<button class="t-btn" onclick="circSkip()">Skip</button>';
+}
+function renderPips(){
+  const el=document.getElementById("tPips");if(!el)return;
+  const done=(C.phase==="finished")?C.rounds:Math.max(0,C.round-1);
+  const cur=(C.phase==="finished")?-1:(C.round-1);
+  let h="";
+  for(let i=0;i<C.rounds;i++){
+    let cls="pip";if(i<done)cls+=" done";else if(i===cur)cls+=" cur";
+    h+='<span class="'+cls+'"></span>';
+  }
+  el.innerHTML=h;
 }
 function paintCircuit(){
   const ph=document.getElementById("tPhase");const tm=document.getElementById("tTime");
@@ -638,11 +672,20 @@ function paintCircuit(){
   const arc=document.getElementById("tArc");
   document.getElementById("tControls").innerHTML=circuitControls();
   tm.classList.remove("small");
+  renderPips();
   if(C.phase==="ready"){
     ph.textContent="READY";ph.className="t-phase get";
     tm.textContent="▶";sub.textContent="";
-    rd.textContent=C.rounds+" rounds · "+C.drills.length+" drills";
+    rd.textContent=C.rounds+" rounds · "+C.drills.length+" drill"+(C.drills.length>1?"s":"");
     arc.style.strokeDashoffset=0;arc.setAttribute("stroke","#fbbf24");return;
+  }
+  if(C.phase==="prep"){
+    ph.textContent="GET READY";ph.className="t-phase get";
+    tm.textContent=C.left;
+    sub.textContent="Starting: "+curDrill().n+" ("+drillTarget(curDrill())+")";
+    rd.textContent="Round 1 of "+C.rounds;
+    arc.setAttribute("stroke","#fbbf24");
+    arc.style.strokeDashoffset=ARC*(1-(C.left/PREP_SECS));return;
   }
   if(C.phase==="finished"){
     ph.textContent="DONE 🎉";ph.className="t-phase work";
@@ -656,7 +699,7 @@ function paintCircuit(){
     ph.className="t-phase rest";
     tm.textContent=C.left;tm.classList.remove("small");
     sub.textContent="Next: "+next.n+" ("+drillTarget(next)+")";
-    rd.textContent=C.phase==="restRound"?("Round "+C.round+" of "+C.rounds):("Round "+C.round+" · drill "+(C.idx+1)+"/"+C.drills.length);
+    rd.textContent=C.phase==="restRound"?("Next: round "+C.round+" of "+C.rounds):("Round "+C.round+" of "+C.rounds+" · drill "+(C.idx+1)+"/"+C.drills.length);
     arc.setAttribute("stroke","#38bdf8");
     arc.style.strokeDashoffset=ARC*(1-(C.left/total));return;
   }
@@ -664,16 +707,16 @@ function paintCircuit(){
   if(C.phase==="work"){ // timed drill
     ph.textContent="WORK";ph.className="t-phase work";
     tm.textContent=C.left;
-    sub.textContent=dr.n;
-    rd.textContent="Round "+C.round+"/"+C.rounds+" · drill "+(C.idx+1)+"/"+C.drills.length;
+    sub.textContent=dr.n+(C.drills.length>1?(" · drill "+(C.idx+1)+"/"+C.drills.length):"");
+    rd.textContent="Round "+C.round+" of "+C.rounds;
     arc.setAttribute("stroke","#4ade80");
     arc.style.strokeDashoffset=ARC*(1-(C.left/dr.dur));return;
   }
   if(C.phase==="reps"){ // rep drill — wait for Done
     ph.textContent=dr.tgt?"GO":"REPS";ph.className="t-phase reps";
     tm.textContent=drillTarget(dr);tm.classList.add("small");
-    sub.textContent=dr.n;
-    rd.textContent="Round "+C.round+"/"+C.rounds+" · drill "+(C.idx+1)+"/"+C.drills.length;
+    sub.textContent=dr.n+(C.drills.length>1?(" · drill "+(C.idx+1)+"/"+C.drills.length):"");
+    rd.textContent="Round "+C.round+" of "+C.rounds;
     arc.setAttribute("stroke","#a78bfa");arc.style.strokeDashoffset=0;return;
   }
 }
@@ -692,25 +735,42 @@ function audioCtx(){
   if(actx.state==="suspended"){try{actx.resume();}catch(e){}}
   return actx;
 }
-function tone(freq,startOffset,dur,vol){
+// one note: freq, start offset, duration, volume(0..1 before master), waveform
+function tone(freq,startOffset,dur,vol,type){
   const v=Math.max(0.0002,vol*(S.vol!==undefined?S.vol:0.9));
   if(v<=0.0003)return; // muted
   const c=audioCtx();const o=c.createOscillator();const g=c.createGain();
-  o.type="square";o.frequency.value=freq;o.connect(g);g.connect(c.destination);
+  o.type=type||"triangle";o.frequency.value=freq;o.connect(g);g.connect(c.destination);
   const t=c.currentTime+startOffset;
   g.gain.setValueAtTime(0.0001,t);
-  g.gain.exponentialRampToValueAtTime(v,t+0.008);
-  g.gain.setValueAtTime(v,t+Math.max(0.02,dur-0.03));
+  g.gain.exponentialRampToValueAtTime(v,t+0.012);
+  g.gain.setValueAtTime(v,t+Math.max(0.03,dur-0.06));
   g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
-  o.start(t);o.stop(t+dur+0.03);
+  o.start(t);o.stop(t+dur+0.04);
 }
 function vibe(p){try{if(S.vibrate&&navigator.vibrate)navigator.vibrate(p);}catch(e){}}
 function beep(kind){
   try{
-    if(kind==="tick"){tone(960,0,0.14,0.95);vibe(50);}
-    else if(kind==="go"){tone(700,0,0.13,1.0);tone(1100,0.15,0.32,1.0);vibe([0,130,70,130]);}
-    else if(kind==="rest"){tone(560,0,0.18,0.95);tone(380,0.21,0.3,0.95);vibe([0,220]);}
-    else if(kind==="done"){tone(700,0,0.16,1.0);tone(940,0.18,0.16,1.0);tone(1400,0.37,0.55,1.0);vibe([0,160,90,160,90,320]);}
+    if(kind==="tick"){ // soft countdown blip
+      tone(740,0,0.09,0.7,"sine");vibe(45);
+    } else if(kind==="prep"){ // get-ready: gentle low pulse
+      tone(440,0,0.16,0.7,"sine");vibe(80);
+    } else if(kind==="go"){ // WORK: bright rising 3-note fanfare (G–C–E), energetic
+      tone(784,0,0.10,0.9,"triangle");
+      tone(1047,0.10,0.10,0.95,"triangle");
+      tone(1319,0.20,0.26,1.0,"triangle");
+      vibe([0,90,50,90,50,160]);
+    } else if(kind==="rest"){ // REST: calm descending 2-note chime (A4→D4), mellow
+      tone(587,0,0.20,0.85,"sine");
+      tone(392,0.22,0.40,0.85,"sine");
+      vibe([0,260]);
+    } else if(kind==="done"){ // finished: warm major arpeggio + octave
+      tone(523,0,0.16,0.9,"triangle");
+      tone(659,0.16,0.16,0.9,"triangle");
+      tone(784,0.32,0.16,0.95,"triangle");
+      tone(1047,0.48,0.5,1.0,"triangle");
+      vibe([0,140,80,140,80,300]);
+    }
   }catch(e){}
 }
 
