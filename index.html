@@ -226,14 +226,14 @@
 */
 const PLAN = {
   0:{name:"Upper Power + Conditioning",dur:"75–90 min",type:"upper",
-    note:"<b>Warm up first:</b> 5 min easy row + light sets of bench & pulldown before the working rounds. Treat each 20s as smooth, controlled reps — quality over speed.",
+    note:"<b>Warm-up (~8 min):</b> 5 min easy row or bike to raise your body temperature, then shoulder prep — 2×15 band pull-aparts and 10 arm circles each way. Before the first press, do 1–2 light ramp-up sets (about half your working DBs × 8) on bench and pulldown so the first hard round isn't cold. Then treat each 20s as smooth, controlled reps — quality over speed.",
     ex:[
       {n:"DB Bench Press",s:"40 lb each · 20s work / 40s rest × 8",sets:8,wt:"40",cue:"Control the lowering; full lockout."},
       {n:"Lat Pulldown",s:"90 lb · 20s work / 20s rest × 8",sets:8,wt:"90",cue:"Drive elbows down, squeeze lats."},
       {n:"DB Shoulder Press",s:"25 lb each · 20s work / 30s rest × 6",sets:6,wt:"25",cue:"Ribs down, don't arch the low back."},
       {n:"Cable Row",s:"80 lb · 20s work / 20s rest × 8",sets:8,wt:"80",cue:"Neutral spine, no jerking."},
       {n:"Incline DB Press",s:"35 lb each · 20s work / 30s rest × 6",sets:6,wt:"35",cue:""},
-      {n:"Face Pulls",s:"40 lb · 15 reps × 3",sets:3,wt:"40",cue:"Great for shoulder health — pull to forehead."},
+      {n:"Face Pulls",s:"40 lb · 15 reps × 3",sets:3,wt:"40",rest:45,cue:"Great for shoulder health — pull to forehead."},
       {n:"Hammer Curl + Rope Pushdown",circuit:true,tag:"Superset",rounds:6,restDrill:0,restRound:45,cue:"Superset: no rest between the two; 45s after each round.",
         drills:[
           {n:"Hammer Curl",type:"reps",reps:12,wt:"20"},
@@ -242,12 +242,12 @@ const PLAN = {
       {n:"Finish: Incline Walk",s:"15 min",sets:1,wt:"",cue:""}
     ]},
   1:{name:"Lower Power + Core",dur:"75–90 min",type:"lower",
-    note:"<b>Warm up the squat:</b> 5 min row + 2–3 ramp-up sets before the working weight. On the 15s squat windows, do <b>3–5 controlled reps</b> — never rush. Stop the interval the moment form breaks (you've had injuries — protect the back & knees).",
+    note:"<b>Warm-up (~10 min):</b> 5 min row or bike, then dynamic prep — 10 leg swings/side, 10 bodyweight squats, 10 walking lunges. Ramp up the squat in 2–3 sets before your 115 lb working weight: empty bar or light × 8, ~75 lb × 5, ~95 lb × 3, then start. On the 15s squat windows do <b>3–5 controlled reps</b> — never rush, and stop the interval the moment form breaks (you've had injuries — protect the back & knees).",
     ex:[
       {n:"Back Squat",s:"115 lb (or Smith) · 15s work / 60s rest × 8",sets:8,wt:"115",bar:45,barOpts:[45,35,25,15],cue:"3–5 quality reps per window. Brace, knees track over toes."},
       {n:"Romanian Deadlift",s:"105 lb · 20s work / 45s rest × 6",sets:6,wt:"105",bar:45,barOpts:[45,35,25,15],cue:"Hinge at hips, soft knees, neutral spine. Don't ego-load."},
       {n:"Walking Lunges",s:"25 lb DBs · 20s work / 20s rest × 6",sets:6,wt:"25",cue:"Knee tracks over foot; control descent."},
-      {n:"Leg Press",s:"220 lb · 10 reps × 4",sets:4,wt:"220",cue:"Don't let knees cave; stop above lockout."},
+      {n:"Leg Press",s:"220 lb · 10 reps × 4",sets:4,wt:"220",rest:75,cue:"Don't let knees cave; stop above lockout."},
       {n:"Hamstring Curl",s:"70 lb · 20s work / 20s rest × 6",sets:6,wt:"70",cue:""},
       {n:"Core Circuit",circuit:true,rounds:4,restDrill:0,restRound:30,cue:"Brace, don't hold breath. No rest between drills; 30s after each full round.",
         drills:[
@@ -258,7 +258,7 @@ const PLAN = {
       {n:"Finish: Easy Elliptical / Incline Walk",s:"10–15 min",sets:1,wt:"",cue:""}
     ]},
   2:{name:"Conditioning + Engine",dur:"≤ 55 min",type:"cardio",
-    note:"<b>Engine day · keep it under 55 min.</b> Push the rower intervals hard, recover fully between. Form on swings stays crisp — it's a hip hinge, not a squat.",
+    note:"<b>Warm-up (~5 min):</b> easy rowing building from light to moderate over 5 min, plus 10 swings with a light kettlebell to groove the hinge before you go heavy. <b>Engine day · keep it under 55 min.</b> Then push the rower intervals hard and recover fully between. Form on swings stays crisp — it's a hip hinge, not a squat.",
     ex:[
       {n:"Rower (damper 5)",circuit:true,tag:"Intervals",rounds:8,restDrill:0,restRound:90,cue:"Row 250m hard, tap Done, then a 90s recovery counts down. Legs–core–arms on the drive.",
         drills:[{n:"Row 250m hard",type:"reps",tgt:"250 m"}]},
@@ -271,7 +271,7 @@ const PLAN = {
         ]}
     ]},
   3:{name:"Upper Athletic Hypertrophy",dur:"≤ 55 min",type:"upper",
-    note:"<b>Slower tempo today · keep it under 55 min.</b> Control every rep. Each Block is one superset run for rounds with rest only after a full round.",
+    note:"<b>Warm-up (~5 min):</b> 3 min easy cardio + 2×15 band pull-aparts, then run the first round of Block A at a lighter weight as your final warm-up before loading up. <b>Slower tempo today · keep it under 55 min.</b> Control every rep. Each Block is one superset run for rounds with rest only after a full round.",
     ex:[
       {n:"Block A",circuit:true,rounds:4,restDrill:0,restRound:45,cue:"Superset: no rest between the two; 45s after each round.",
         drills:[
@@ -294,12 +294,12 @@ const PLAN = {
   4:{name:"Rest",dur:"",type:"rest",
     note:"",ex:[]},
   5:{name:"Lower Body + Full Conditioning",dur:"75–90 min",type:"lower",
-    note:"<b>Warm up the deadlift:</b> ramp up in 2–3 sets first. On the 15s trap-bar windows, do <b>3–5 controlled reps</b> with a braced, neutral spine — this is the highest-risk lift in the week, so leave reps in the tank if form slips.",
+    note:"<b>Warm-up (~10 min):</b> 5 min row or bike, then hip-hinge prep — 10 glute bridges, 10 bodyweight good-mornings, 10 leg swings/side. Ramp up the trap bar in 2–3 sets before 165 lb: ~95 lb × 5, ~135 lb × 3, then start. On the 15s trap-bar windows do <b>3–5 controlled reps</b> with a braced, neutral spine — this is the highest-risk lift in the week, so leave reps in the tank if form slips.",
     ex:[
       {n:"Trap Bar Deadlift",s:"165 lb · 15s work / 60s rest × 6",sets:6,wt:"165",bar:45,barOpts:[45,55,60,35],cue:"3–5 quality reps/window. Brace, push the floor away, neutral spine."},
       {n:"Bulgarian Split Squat",s:"25 lb DBs · 20s work / 30s rest × 6",sets:6,wt:"25",cue:"Control the eccentric; front knee tracks over foot."},
       {n:"Step-Ups",s:"20 lb DBs · 20s work / 20s rest × 6",sets:6,wt:"20",cue:"Full foot on box, drive through heel."},
-      {n:"DB Hip Thrust",s:"50 lb · 10 reps × 4",sets:4,wt:"50",cue:"One DB across the hip crease (rest it on a towel/pad — no bar digging in). Shoulder blades on the bench, drive through heels, squeeze glutes at the top, chin tucked, ribs down. Try single-leg with a lighter DB if you want more glute focus."},
+      {n:"DB Hip Thrust",s:"40 lb · 10 reps × 4",sets:4,wt:"40",rest:75,cue:"One DB across the hip crease, resting on a towel/pad. Shoulder blades on the bench, drive through heels, squeeze glutes hard at the top, chin tucked, ribs down. If your heaviest DB feels light here, slow the lower to a 3-count or switch to single-leg (one foot down) for more glute focus. Set the weight to whatever DB you have."},
       {n:"Hamstring Curl",s:"70 lb · 20s work / 20s rest × 6",sets:6,wt:"70",cue:""},
       {n:"Finish: Rower (damper 5)",circuit:true,tag:"Intervals",rounds:8,restDrill:0,restRound:90,cue:"250m hard, tap Done, then a 90s recovery counts down. Aim for 6–8 rounds.",
         drills:[{n:"Row 250m hard",type:"reps",tgt:"250 m"}]}
@@ -311,7 +311,7 @@ const DAY_LABELS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 /* ---------- STATE / PERSISTENCE ---------- */
 const wkKey=()=>{const d=new Date();const o=new Date(d);o.setDate(d.getDate()-d.getDay());return o.toISOString().slice(0,10);};
-const VERSION="1.8";
+const VERSION="1.9";
 let store=JSON.parse(localStorage.getItem("gymPlan")||"{}");
 // weights & settings persist across weeks; only the per-week "done" checkmarks reset.
 if(store.week!==wkKey()){store={week:wkKey(),done:{},weights:(store.weights||{}),bars:(store.bars||{}),settings:(store.settings||{})};save();}
@@ -394,7 +394,7 @@ function render(preserveScroll){
     const allDone=e.sets>0&&done.length>=e.sets;
     h+='<div class="ex'+(allDone?" done":"")+'">';
     h+='<div class="ex-top"><div><div class="ex-name">'+e.n+'</div><div class="ex-scheme">'+e.s+'</div></div>';
-    if(/\d+s\s*work|recovery/.test(e.s)&&e.sets>1)
+    if(/\d+s\s*work|recovery|reps/.test(e.s)&&e.sets>1)
       h+='<button class="timerbtn" onclick="openCircuit('+ei+')">⏱ Timer</button>';
     h+='</div>';
     if(e.cue)h+='<div class="ex-cue">'+e.cue+'</div>';
@@ -550,11 +550,17 @@ function openCircuit(ei){
   if(e.circuit){
     drills=e.drills;rounds=e.rounds;restDrill=e.restDrill||0;restRound=e.restRound||0;
     label=e.n+" · "+rounds+" rounds, "+drills.length+" drills";
-  }else{
-    // single timed exercise (e.g. "20s work / 40s rest × 8") → one-drill timed circuit
+  }else if(/\d+s\s*work/.test(e.s)){
+    // timed exercise (e.g. "20s work / 40s rest × 8") → one-drill timed circuit
     const cfg=parseScheme(e.n,ei);
     drills=[{n:e.n,type:"time",dur:cfg.work}];rounds=cfg.rounds;restDrill=0;restRound=cfg.rest;
     label=e.n+" · "+cfg.work+"s work / "+cfg.rest+"s rest × "+rounds;
+  }else{
+    // rep-based exercise (e.g. "10 reps × 4") → tap-when-done + rest timer between sets
+    const rm=e.s.match(/(\d+)\s*reps/);const reps=rm?+rm[1]:10;
+    rounds=e.sets||4;restDrill=0;restRound=e.rest||75;
+    drills=[{n:e.n,type:"reps",reps:reps}];
+    label=e.n+" · "+reps+" reps × "+rounds+" (tap Done, "+restRound+"s rest)";
   }
   C={ex:e,ei:ei,drills:drills,rounds:rounds,restDrill:restDrill,restRound:restRound,
      round:1,idx:0,phase:"ready",left:0,running:false,iv:null,name:e.n};
