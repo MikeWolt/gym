@@ -227,7 +227,11 @@ const PLAN = {
       {n:"Cable Row",s:"80 lb · 20s work / 20s rest × 8",sets:8,wt:"80",cue:"Neutral spine, no jerking."},
       {n:"Incline DB Press",s:"35 lb each · 20s work / 30s rest × 6",sets:6,wt:"35",cue:""},
       {n:"Face Pulls",s:"40 lb · 15 reps × 3",sets:3,wt:"40",cue:"Great for shoulder health — pull to forehead."},
-      {n:"Hammer Curl + Rope Pushdown (superset)",s:"20 lb each / 50 lb · 6 rounds",sets:6,wt:"20 / 50",cue:""},
+      {n:"Hammer Curl + Rope Pushdown",circuit:true,tag:"Superset",rounds:6,restDrill:0,restRound:45,cue:"Superset: no rest between the two; 45s after each round.",
+        drills:[
+          {n:"Hammer Curl",type:"reps",reps:12,wt:"20"},
+          {n:"Rope Pushdown",type:"reps",reps:12,wt:"50"}
+        ]},
       {n:"Finish: Incline Walk",s:"15 min",sets:1,wt:"",cue:""}
     ]},
   1:{name:"Lower Power + Core",dur:"75–90 min",type:"lower",
@@ -300,7 +304,7 @@ const DAY_LABELS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 /* ---------- STATE / PERSISTENCE ---------- */
 const wkKey=()=>{const d=new Date();const o=new Date(d);o.setDate(d.getDate()-d.getDay());return o.toISOString().slice(0,10);};
-const VERSION="1.6";
+const VERSION="1.7";
 let store=JSON.parse(localStorage.getItem("gymPlan")||"{}");
 // weights & settings persist across weeks; only the per-week "done" checkmarks reset.
 if(store.week!==wkKey()){store={week:wkKey(),done:{},weights:(store.weights||{}),bars:(store.bars||{}),settings:(store.settings||{})};save();}
@@ -383,8 +387,8 @@ function render(preserveScroll){
     const allDone=e.sets>0&&done.length>=e.sets;
     h+='<div class="ex'+(allDone?" done":"")+'">';
     h+='<div class="ex-top"><div><div class="ex-name">'+e.n+'</div><div class="ex-scheme">'+e.s+'</div></div>';
-    if(/work \/|recovery|×\s*\d/.test(e.s)&&e.sets>1)
-      h+='<button class="timerbtn" onclick=\'openTimer('+JSON.stringify(e.n)+','+ei+')\'>⏱ Timer</button>';
+    if(/\d+s\s*work|recovery/.test(e.s)&&e.sets>1)
+      h+='<button class="timerbtn" onclick="openCircuit('+ei+')">⏱ Timer</button>';
     h+='</div>';
     if(e.cue)h+='<div class="ex-cue">'+e.cue+'</div>';
     if(e.wt!==""){
@@ -535,9 +539,20 @@ let C={ex:null,ei:-1,drills:[],rounds:4,restDrill:0,restRound:30,
 function openCircuit(ei){
   MODE="circuit";
   const e=PLAN[cur].ex[ei];
-  C={ex:e,ei:ei,drills:e.drills,rounds:e.rounds,restDrill:e.restDrill||0,restRound:e.restRound||0,
+  let drills,rounds,restDrill,restRound,label;
+  if(e.circuit){
+    drills=e.drills;rounds=e.rounds;restDrill=e.restDrill||0;restRound=e.restRound||0;
+    label=e.n+" · "+rounds+" rounds, "+drills.length+" drills";
+  }else{
+    // single timed exercise (e.g. "20s work / 40s rest × 8") → one-drill timed circuit
+    const cfg=parseScheme(e.n,ei);
+    drills=[{n:e.n,type:"time",dur:cfg.work}];rounds=cfg.rounds;restDrill=0;restRound=cfg.rest;
+    label=e.n+" · "+cfg.work+"s work / "+cfg.rest+"s rest × "+rounds;
+  }
+  C={ex:e,ei:ei,drills:drills,rounds:rounds,restDrill:restDrill,restRound:restRound,
      round:1,idx:0,phase:"ready",left:0,running:false,iv:null,name:e.n};
-  document.getElementById("tEx").textContent=e.n+" · "+e.rounds+" rounds, "+e.drills.length+" drills";
+  document.getElementById("tEx").textContent=label;
+  document.getElementById("tControls").innerHTML="";
   document.getElementById("overlay").classList.add("show");
   paintCircuit();keepAwake(true);
 }
