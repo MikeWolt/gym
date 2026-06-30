@@ -348,7 +348,7 @@ const PLAN = {
       {n:"Trap Bar Deadlift",s:"165 lb · 15s work / 60s rest × 6",sets:6,wt:"165",bar:45,barOpts:[45,55,60,35],cue:"3–5 quality reps/window. Brace, push the floor away, neutral spine."},
       {n:"Bulgarian Split Squat",s:"25 lb DBs · 20s work / 30s rest × 6",sets:6,wt:"25",cue:"Control the eccentric; front knee tracks over foot."},
       {n:"Step-Ups",s:"20 lb DBs · 20s work / 20s rest × 6",sets:6,wt:"20",cue:"Full foot on box, drive through heel."},
-      {n:"Single-Leg DB Hip Thrust",s:"40 lb · 10 reps/leg × 4",sets:4,wt:"40",rest:75,cue:"Why single-leg: one 40 lb DB can't replicate the old 115 lb barbell on two legs — but working ONE leg with a 40 lb DB meets or beats that load per leg, so it's the right swap. One foot planted, other leg lifted, DB across the hip crease on a towel. Shoulder blades on the bench, drive through the heel, squeeze, chin tucked, ribs down. Drop to 30–35 lb if you can't hit 10 clean reps/leg; go heavier only when 10/leg feels easy."},
+      {n:"Hip Thrust (Smith machine)",s:"115 lb · 10 reps × 4",sets:4,wt:"115",bar:45,barOpts:[45,35,25,15,0],rest:75,cue:"Smith bar over the hips with a barbell pad or folded mat so it doesn't dig in. Shoulder blades on the bench, drive through your heels, squeeze glutes hard at the top, chin tucked, ribs down. Set 'Bar weight' to your Smith bar (often ~15–25 lb counterbalanced — use 0 if you'd rather log only the plates you add)."},
       {n:"Hamstring Curl",s:"70 lb · 20s work / 20s rest × 6",sets:6,wt:"70",cue:""},
       {n:"Finish: Rower (damper 5)",circuit:true,tag:"Intervals",rounds:8,restDrill:0,restRound:90,cue:"250m hard, tap Done, then a 90s recovery counts down. Aim for 6–8 rounds.",
         drills:[{n:"Row 250m hard",type:"reps",tgt:"250 m"}]}
@@ -360,7 +360,7 @@ const DAY_LABELS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 
 /* ---------- STATE / PERSISTENCE ---------- */
 const wkKey=()=>{const d=new Date();const o=new Date(d);o.setDate(d.getDate()-d.getDay());return o.toISOString().slice(0,10);};
-const VERSION="2.0";
+const VERSION="2.1";
 let store=JSON.parse(localStorage.getItem("gymPlan")||"{}");
 // weights & settings persist across weeks; only the per-week "done" checkmarks reset.
 if(store.week!==wkKey()){store={week:wkKey(),done:{},weights:(store.weights||{}),bars:(store.bars||{}),settings:(store.settings||{})};save();}
@@ -608,10 +608,12 @@ function paintTimer(){
 
 /* ================= CIRCUIT PLAYER (one unit, mixed timed + rep drills) ================= */
 let MODE="interval";
+let dayCompleteAtOpen=false;
 let C={ex:null,ei:-1,drills:[],rounds:4,restDrill:0,restRound:30,
        round:1,idx:0,phase:"ready",left:0,running:false,iv:null,name:""};
 function openCircuit(ei){
   MODE="circuit";
+  dayCompleteAtOpen=dayComplete(cur);
   const e=PLAN[cur].ex[ei];
   let drills,rounds,restDrill,restRound,label;
   if(e.circuit){
@@ -799,6 +801,8 @@ function closeOverlay(){
   clearInterval(T.iv);clearInterval(C.iv);
   T.running=false;C.running=false;keepAwake(false);
   document.getElementById("overlay").classList.remove("show");render(true);
+  // if finishing this timer completed the whole day, celebrate on exit
+  if(!dayCompleteAtOpen&&dayComplete(cur)){dayCompleteAtOpen=true;celebrateDay(cur);}
 }
 
 /* ---------- audio beeps (loud: square wave + vibration) ---------- */
